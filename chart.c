@@ -1,3 +1,20 @@
+/* chart - Experiments with libgoffice-0.10
+ * Copyright (C) 2020  Nicola Fontana <ntd at entidi.it>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <goffice/goffice.h>
 #include <string.h>
 
@@ -77,55 +94,70 @@ gop_producer(GogSeries *series)
         gog_series_set_dim(series, 1, data, NULL);
     }
 
-    return TRUE;
+    return G_SOURCE_CONTINUE;
 }
 
-
-
-int
-main (int argc, char *argv[])
+static void
+on_startup(GtkApplication *app)
 {
-    GtkWidget *window, *content_area, *action_area, *button;
-    GOGraphWidget *graph_widget;
+    libgoffice_init();
+    go_plugins_init(NULL, NULL, NULL, NULL, TRUE, GO_TYPE_PLUGIN_LOADER_MODULE);
+}
+
+static void
+on_activate(GtkApplication *app)
+{
+    GtkWidget *widget, *box;
     GogChart *chart;
     GogPlot *plot;
     GogSeries *series;
 
-    gtk_init(&argc, &argv);
-    libgoffice_init();
-    go_plugins_init(NULL, NULL, NULL, NULL, TRUE, GO_TYPE_PLUGIN_LOADER_MODULE);
+    widget = gtk_application_window_new(app);
+    gtk_window_set_default_size(GTK_WINDOW(widget), 640, 480);
+    gtk_window_set_title(GTK_WINDOW(widget), "GOffice primer");
+    gtk_widget_show(widget);
 
-    window = gtk_dialog_new_with_buttons("Charting demo", NULL,
-                                         GTK_DIALOG_DESTROY_WITH_PARENT,
-                                         GTK_STOCK_OK, GTK_RESPONSE_NONE,
-                                         NULL);
-    gtk_window_resize(GTK_WINDOW(window), 640, 480);
-    g_signal_connect_swapped(window, "response",
-                             G_CALLBACK(gtk_widget_destroy), window);
-    content_area = gtk_dialog_get_content_area(GTK_DIALOG(window));
-    action_area = gtk_dialog_get_action_area(GTK_DIALOG(window));
+    box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    gtk_container_add(GTK_CONTAINER(widget), box);
 
-    button = g_object_new(GTK_TYPE_TOGGLE_BUTTON, "label", GTK_STOCK_GO_FORWARD,
-                          "use-stock", TRUE, "use-underline", TRUE, NULL);
-    g_signal_connect(button, "toggled", G_CALLBACK(gop_switch), NULL);
-    gtk_container_add(GTK_CONTAINER(action_area), button);
+    widget = gtk_toggle_button_new_with_label("Trigger");
+    g_signal_connect(widget, "toggled", G_CALLBACK(gop_switch), NULL);
+    gtk_box_pack_end(GTK_BOX(box), widget, TRUE, TRUE, 6);
 
-    graph_widget = (GOGraphWidget *) go_graph_widget_new(NULL);
-    gop_graph_widget_prepare(graph_widget);
-    gtk_container_add(GTK_CONTAINER(content_area), GTK_WIDGET(graph_widget));
+    widget = go_graph_widget_new(NULL);
+    gop_graph_widget_prepare(GO_GRAPH_WIDGET(widget));
+    gtk_box_pack_start(GTK_BOX(box), widget, TRUE, TRUE, 0);
 
     plot = (GogPlot *) gog_plot_new_by_name("GogXYPlot");
-    chart = go_graph_widget_get_chart(graph_widget);
+    chart = go_graph_widget_get_chart(GO_GRAPH_WIDGET(widget));
     gog_object_add_by_name(GOG_OBJECT(chart), "Plot", GOG_OBJECT(plot));
 
     series = gog_plot_new_series(plot);
     gop_series_prepare(series);
+    g_timeout_add(50, (GSourceFunc) gop_producer, series);
 
-    gtk_widget_show_all(window);
-    g_timeout_add(10, (GSourceFunc) gop_producer, series);
-    gtk_dialog_run(GTK_DIALOG(window));
+    gtk_widget_show_all(box);
+}
 
+static void
+on_shutdown(GtkApplication *app)
+{
     libgoffice_shutdown();
+}
 
-    return 0;
+
+int
+main(int argc, char *argv[])
+{
+    GtkApplication *app;
+    int status;
+
+    app = gtk_application_new("com.entidi.goffice-primer", G_APPLICATION_FLAGS_NONE);
+    g_signal_connect(app, "startup", G_CALLBACK(on_startup), NULL);
+    g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
+    g_signal_connect(app, "shutdown", G_CALLBACK(on_shutdown), NULL);
+    status = g_application_run(G_APPLICATION(app), argc, argv);
+    g_object_unref(app);
+
+    return status;
 }
