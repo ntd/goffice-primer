@@ -115,18 +115,19 @@ on_activate(GtkApplication *app)
     widget = gtk_application_window_new(app);
     gtk_window_set_default_size(GTK_WINDOW(widget), 640, 480);
     gtk_window_set_title(GTK_WINDOW(widget), "GOffice primer");
+    gtk_container_set_border_width(GTK_CONTAINER(widget), 6);
     gtk_widget_show(widget);
 
-    box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(widget), box);
 
     widget = gtk_toggle_button_new_with_label("Trigger");
     g_signal_connect(widget, "toggled", G_CALLBACK(gop_switch), NULL);
-    gtk_box_pack_end(GTK_BOX(box), widget, TRUE, TRUE, 6);
+    gtk_box_pack_end(GTK_BOX(box), widget, FALSE, TRUE, 3);
 
     widget = go_graph_widget_new(NULL);
     gop_graph_widget_prepare(GO_GRAPH_WIDGET(widget));
-    gtk_box_pack_start(GTK_BOX(box), widget, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(box), widget, TRUE, TRUE, 3);
 
     plot = (GogPlot *) gog_plot_new_by_name("GogXYPlot");
     chart = go_graph_widget_get_chart(GO_GRAPH_WIDGET(widget));
