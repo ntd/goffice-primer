@@ -84,24 +84,19 @@ gop_series_new(GtkWidget *widget)
 static gboolean
 gop_producer(GogSeries *series)
 {
-    if (gop_trigger && GOG_IS_DATASET(series)) {
-        gdouble *old_values, *values;
-        gint old_len, len;
-        GOData *old_data, *data;
+    static GArray *array = NULL;
 
-        old_data = gog_dataset_get_dim(GOG_DATASET(series), 1);
-        g_assert(old_data != NULL);
-        old_len = go_data_vector_get_len(GO_DATA_VECTOR(old_data));
-        g_assert(old_len >= 0);
-        old_values = go_data_vector_get_values(GO_DATA_VECTOR(old_data));
+    if (gop_trigger) {
+        gdouble value;
+        GOData *data;
 
-        len = old_len + 1;
-        values = g_new(gdouble, len);
-        if (old_values != NULL)
-            memcpy(values, old_values, sizeof(gdouble)*old_len);
-        values[old_len] = g_random_double_range(0, 80);
-        data = go_data_vector_val_new(values, len, NULL);
+        if (array == NULL) {
+            array = g_array_sized_new(FALSE, FALSE, sizeof(gdouble), 500);
+        }
 
+        value = g_random_double_range(0, 80);
+        array = g_array_append_val(array, value);
+        data  = go_data_vector_val_new((gdouble *) array->data, array->len, NULL);
         gog_series_set_dim(series, 1, data, NULL);
     }
 
