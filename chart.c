@@ -18,6 +18,10 @@
 #include <goffice/goffice.h>
 #include <string.h>
 
+#define STYLE(o)    go_styled_object_get_style(GO_STYLED_OBJECT(o))
+#define CHART(w)    go_graph_widget_get_chart(GO_GRAPH_WIDGET(w))
+#define GRAPH(w)    go_graph_widget_get_graph(GO_GRAPH_WIDGET(w))
+
 
 static gboolean gop_trigger = FALSE;
 
@@ -29,45 +33,52 @@ gop_switch(GtkToggleButton *toggle_button)
 }
 
 static void
-gop_graph_widget_prepare(GOGraphWidget *graph_widget)
+gop_add_title(GtkWidget *widget)
 {
-    GogGraph *graph;
     GogObject *label;
-    GOStyle *style;
     PangoFontDescription *desc;
     GOData *data;
 
-    graph = go_graph_widget_get_graph(graph_widget);
     label = g_object_new(GOG_TYPE_LABEL, NULL);
-    gog_object_add_by_name(GOG_OBJECT(graph), "Title", label);
-
-    style = go_styled_object_get_style(GO_STYLED_OBJECT(label));
-    desc = pango_font_description_from_string("Sand bold 16");
-    go_style_set_font_desc(style, desc);
-    go_styled_object_style_changed(GO_STYLED_OBJECT(label));
-
     data = go_data_scalar_str_new("Testing libgoffice viability...", FALSE);
     gog_dataset_set_dim(GOG_DATASET(label), 0, data, NULL);
+    /* data is now owned by label */
+    desc = pango_font_description_from_string("Sand bold 16");
+    go_style_set_font_desc(STYLE(label), desc);
+    /* desc is now owned by label */
+    go_styled_object_style_changed(GO_STYLED_OBJECT(label));
+    gog_object_add_by_name(GOG_OBJECT(GRAPH(widget)), "Title", label);
 }
 
-static void
-gop_series_prepare(GogSeries *series)
+static GtkWidget *
+gop_graph_widget_new(void)
 {
-    GOData *data;
-    GOStyle *style;
-    GOMarker *marker;
+    GtkWidget *widget;
 
+    widget = go_graph_widget_new(NULL);
+    gop_add_title(widget);
+
+    return widget;
+}
+
+static GogSeries *
+gop_series_new(GtkWidget *widget)
+{
+    GogPlot *plot;
+    GogSeries *series;
+    GOData *data;
+
+    plot = gog_plot_new_by_name("GogXYPlot");
+    gog_object_add_by_name(GOG_OBJECT(CHART(widget)), "Plot", GOG_OBJECT(plot));
+
+    series = gog_plot_new_series(plot);
     data = go_data_vector_val_new(NULL, 0, NULL);
     gog_series_set_dim(series, 1, data, NULL);
-
-    style = go_styled_object_get_style(GO_STYLED_OBJECT(series));
-    marker = go_marker_new();
-    go_marker_set_shape(marker, GO_MARKER_NONE);
-    go_style_set_marker(style, marker);
-    style->marker.auto_shape = FALSE;
-    style->marker.auto_outline_color = FALSE;
-    style->marker.auto_fill_color = FALSE;
+    /* data is now owned by series */
+    go_style_clear_auto(STYLE(series));
     go_styled_object_style_changed(GO_STYLED_OBJECT(series));
+
+    return series;
 }
 
 static gboolean
@@ -108,8 +119,6 @@ static void
 on_activate(GtkApplication *app)
 {
     GtkWidget *widget, *box;
-    GogChart *chart;
-    GogPlot *plot;
     GogSeries *series;
 
     widget = gtk_application_window_new(app);
@@ -125,17 +134,11 @@ on_activate(GtkApplication *app)
     g_signal_connect(widget, "toggled", G_CALLBACK(gop_switch), NULL);
     gtk_box_pack_end(GTK_BOX(box), widget, FALSE, TRUE, 3);
 
-    widget = go_graph_widget_new(NULL);
-    gop_graph_widget_prepare(GO_GRAPH_WIDGET(widget));
+    widget = gop_graph_widget_new();
     gtk_box_pack_start(GTK_BOX(box), widget, TRUE, TRUE, 3);
 
-    plot = (GogPlot *) gog_plot_new_by_name("GogXYPlot");
-    chart = go_graph_widget_get_chart(GO_GRAPH_WIDGET(widget));
-    gog_object_add_by_name(GOG_OBJECT(chart), "Plot", GOG_OBJECT(plot));
-
-    series = gog_plot_new_series(plot);
-    gop_series_prepare(series);
-    g_timeout_add(50, (GSourceFunc) gop_producer, series);
+    series = gop_series_new(widget);
+    g_timeout_add(10, (GSourceFunc) gop_producer, series);
 
     gtk_widget_show_all(box);
 }
