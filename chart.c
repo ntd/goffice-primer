@@ -45,6 +45,17 @@ gop_label_new(const gchar *text)
 }
 
 static void
+gop_customize_chart(GogChart *chart)
+{
+    GOStyle *style = go_styled_object_get_style(GO_STYLED_OBJECT(chart));
+    style->fill.type = GO_STYLE_FILL_GRADIENT;
+    style->fill.gradient.dir = GO_GRADIENT_N_TO_S;
+    style->fill.pattern.back = GO_COLOR_FROM_RGB(0, 200, 200);
+    style->fill.pattern.fore = GO_COLOR_FROM_RGB(0, 220, 150);
+    go_styled_object_style_changed(GO_STYLED_OBJECT(chart));
+}
+
+static void
 gop_customize_axis(GogAxis *axis)
 {
     GOStyle *style = go_styled_object_get_style(GO_STYLED_OBJECT(axis));
@@ -110,11 +121,15 @@ gop_graph_widget_new(void)
 static GogSeries *
 gop_series_new(GtkWidget *widget)
 {
+    GogChart *chart;
     GogPlot *plot;
     GogSeries *series;
 
+    chart = go_graph_widget_get_chart(GO_GRAPH_WIDGET(widget));
+    gop_customize_chart(chart);
+
     plot = gog_plot_new_by_name("GogXYPlot");
-    gog_object_add_by_name(GOG_OBJECT(CHART(widget)), "Plot", GOG_OBJECT(plot));
+    gog_object_add_by_name(GOG_OBJECT(chart), "Plot", GOG_OBJECT(plot));
     gop_customize_plot(plot);
 
     series = gog_plot_new_series(plot);
