@@ -110,19 +110,32 @@ gop_series_new(GtkWidget *widget)
 static gboolean
 gop_producer(GogSeries *series)
 {
-    static GArray *array = NULL;
+    static GArray *x = NULL;
+    static GArray *y = NULL;
 
     if (gop_trigger) {
-        gdouble value;
         GOData *data;
+        gdouble value;
 
-        if (array == NULL) {
-            array = g_array_sized_new(FALSE, FALSE, sizeof(gdouble), 500);
+        /* Set value to the X of the last element */
+        if (x == NULL) {
+            x = g_array_sized_new(FALSE, FALSE, sizeof(gdouble), 500);
+            y = g_array_sized_new(FALSE, FALSE, sizeof(gdouble), 500);
+            value = 0;
+        } else {
+            value = g_array_index(x, gdouble, x->len - 1);
         }
 
+        /* X values */
+        value += g_random_double_range(-1, 2);
+        x = g_array_append_val(x, value);
+        data  = go_data_vector_val_new((gdouble *) x->data, x->len, NULL);
+        gog_series_set_dim(series, 0, data, NULL);
+
+        /* Y values */
         value = g_random_double_range(0, 80);
-        array = g_array_append_val(array, value);
-        data  = go_data_vector_val_new((gdouble *) array->data, array->len, NULL);
+        y = g_array_append_val(y, value);
+        data  = go_data_vector_val_new((gdouble *) y->data, y->len, NULL);
         gog_series_set_dim(series, 1, data, NULL);
     }
 
