@@ -58,7 +58,12 @@ gop_customize_chart(GogChart *chart)
 static void
 gop_customize_axis(GogAxis *axis)
 {
-    GOStyle *style = go_styled_object_get_style(GO_STYLED_OBJECT(axis));
+    GOStyle *style;
+
+    gog_object_add_by_name(GOG_OBJECT(axis), "MajorGrid",
+                           GOG_OBJECT(g_object_new(GOG_TYPE_GRID_LINE, NULL)));
+
+    style = go_styled_object_get_style(GO_STYLED_OBJECT(axis));
     style->font.color = GO_COLOR_FROM_RGB(0, 0, 255);
     style->line.color = GO_COLOR_FROM_RGB(0, 0, 255);
     go_styled_object_style_changed(GO_STYLED_OBJECT(axis));
@@ -78,6 +83,12 @@ gop_customize_plot(GogPlot *plot)
 {
     GogObject *label;
     GogAxis *axis;
+
+    g_object_set(G_OBJECT(plot),
+                 "default-style-has-markers", FALSE,
+                 "default-style-has-lines", FALSE,
+                 "default-style-has-fill", TRUE,
+                 NULL);
 
     /* Customize X axis */
     axis = gog_plot_get_axis(plot, GOG_AXIS_X);
@@ -99,9 +110,7 @@ gop_customize_series(GogSeries *series)
 {
     GOStyle *style = go_styled_object_get_style(GO_STYLED_OBJECT(series));
     go_style_clear_auto(style);
-    style->font.color = GO_COLOR_FROM_RGB(0, 255, 0);
-    style->line.color = GO_COLOR_FROM_RGB(255, 0, 0);
-    style->line.width = 1.5;
+    style->fill.pattern.back = GO_COLOR_FROM_RGBA(100, 0, 0, 150);
     go_styled_object_style_changed(GO_STYLED_OBJECT(series));
 }
 
@@ -126,6 +135,8 @@ gop_series_new(GtkWidget *widget)
     GogSeries *series;
 
     chart = go_graph_widget_get_chart(GO_GRAPH_WIDGET(widget));
+    gog_object_add_by_name(GOG_OBJECT(chart), "Backplane",
+                           GOG_OBJECT(g_object_new(GOG_TYPE_GRID, NULL)));
     gop_customize_chart(chart);
 
     plot = gog_plot_new_by_name("GogXYPlot");
