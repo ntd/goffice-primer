@@ -51,27 +51,40 @@ gop_add_title(GtkWidget *widget)
 }
 
 static void
-gop_add_labels(GogPlot *plot, const gchar *xlabel, const gchar *ylabel)
+gop_customize_plot(GogPlot *plot)
 {
     GogObject *label;
     GOData *data;
     GogAxis *axis;
 
+    /* Add X axis label */
     label = g_object_new(GOG_TYPE_LABEL, "allow-markup", TRUE, NULL);
-    data  = go_data_scalar_str_new(xlabel, FALSE);
+    data  = go_data_scalar_str_new("<big>X</big> axis", FALSE);
     gog_dataset_set_dim(GOG_DATASET(label), 0, data, NULL);
     /* data is now owned by label */
     axis = gog_plot_get_axis(plot, GOG_AXIS_X);
     gog_object_add_by_name(GOG_OBJECT(axis), "Label", label);
     /* label is now owned by axis */
 
+    /* Add Y axis label */
     label = g_object_new(GOG_TYPE_LABEL, "allow-markup", TRUE, NULL);
-    data  = go_data_scalar_str_new(ylabel, FALSE);
+    data  = go_data_scalar_str_new("<big>Y</big> axis", FALSE);
     gog_dataset_set_dim(GOG_DATASET(label), 0, data, NULL);
     /* data is now owned by label */
     axis = gog_plot_get_axis(plot, GOG_AXIS_Y);
     gog_object_add_by_name(GOG_OBJECT(axis), "Label", label);
     /* label is now owned by axis */
+}
+
+static void
+gop_customize_series(GogSeries *series)
+{
+    GOStyle *style = go_styled_object_get_style(GO_STYLED_OBJECT(series));
+    go_style_clear_auto(style);
+    style->font.color = GO_COLOR_FROM_RGB(0, 255, 0);
+    style->line.color = GO_COLOR_FROM_RGB(255, 0, 0);
+    style->line.width = 1.5;
+    go_styled_object_style_changed(GO_STYLED_OBJECT(series));
 }
 
 static GtkWidget *
@@ -90,19 +103,13 @@ gop_series_new(GtkWidget *widget)
 {
     GogPlot *plot;
     GogSeries *series;
-    GOData *data;
 
     plot = gog_plot_new_by_name("GogXYPlot");
     gog_object_add_by_name(GOG_OBJECT(CHART(widget)), "Plot", GOG_OBJECT(plot));
+    gop_customize_plot(plot);
 
     series = gog_plot_new_series(plot);
-    data = go_data_vector_val_new(NULL, 0, NULL);
-    gog_series_set_dim(series, 1, data, NULL);
-    /* data is now owned by series */
-    go_style_clear_auto(STYLE(series));
-    go_styled_object_style_changed(GO_STYLED_OBJECT(series));
-
-    gop_add_labels(plot, "<big>X</big> axis", "<big>Y</big> axis");
+    gop_customize_series(series);
 
     return series;
 }
