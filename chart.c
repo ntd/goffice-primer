@@ -18,7 +18,6 @@
 #include <goffice/goffice.h>
 #include <string.h>
 
-#define STYLE(o)    go_styled_object_get_style(GO_STYLED_OBJECT(o))
 #define CHART(w)    go_graph_widget_get_chart(GO_GRAPH_WIDGET(w))
 #define GRAPH(w)    go_graph_widget_get_graph(GO_GRAPH_WIDGET(w))
 
@@ -32,48 +31,56 @@ gop_switch(GtkToggleButton *toggle_button)
     gop_trigger = gtk_toggle_button_get_active(toggle_button);
 }
 
-static void
-gop_add_title(GtkWidget *widget)
+static GogObject *
+gop_label_new(const gchar *text)
 {
     GogObject *label;
-    PangoFontDescription *desc;
     GOData *data;
 
-    label = g_object_new(GOG_TYPE_LABEL, NULL);
-    data = go_data_scalar_str_new("Testing libgoffice viability...", FALSE);
+    label = g_object_new(GOG_TYPE_LABEL, "allow-markup", TRUE, NULL);
+    data  = go_data_scalar_str_new(text, FALSE);
     gog_dataset_set_dim(GOG_DATASET(label), 0, data, NULL);
-    /* data is now owned by label */
-    desc = pango_font_description_from_string("Sand bold 16");
-    go_style_set_font_desc(STYLE(label), desc);
-    /* desc is now owned by label */
+
+    return label;
+}
+
+static void
+gop_customize_axis(GogAxis *axis)
+{
+    GOStyle *style = go_styled_object_get_style(GO_STYLED_OBJECT(axis));
+    style->font.color = GO_COLOR_FROM_RGB(0, 0, 255);
+    style->line.color = GO_COLOR_FROM_RGB(0, 0, 255);
+    go_styled_object_style_changed(GO_STYLED_OBJECT(axis));
+}
+
+static void
+gop_customize_axis_label(GogObject *label)
+{
+    GOStyle *style = go_styled_object_get_style(GO_STYLED_OBJECT(label));
+    style->font.color = GO_COLOR_FROM_RGB(0, 0, 255);
+    go_style_set_font(style, go_font_new_by_name("Sans 18"));
     go_styled_object_style_changed(GO_STYLED_OBJECT(label));
-    gog_object_add_by_name(GOG_OBJECT(GRAPH(widget)), "Title", label);
 }
 
 static void
 gop_customize_plot(GogPlot *plot)
 {
     GogObject *label;
-    GOData *data;
     GogAxis *axis;
 
-    /* Add X axis label */
-    label = g_object_new(GOG_TYPE_LABEL, "allow-markup", TRUE, NULL);
-    data  = go_data_scalar_str_new("<big>X</big> axis", FALSE);
-    gog_dataset_set_dim(GOG_DATASET(label), 0, data, NULL);
-    /* data is now owned by label */
+    /* Customize X axis */
     axis = gog_plot_get_axis(plot, GOG_AXIS_X);
+    gop_customize_axis(axis);
+    label = gop_label_new("<b>X</b> axis");
     gog_object_add_by_name(GOG_OBJECT(axis), "Label", label);
-    /* label is now owned by axis */
+    gop_customize_axis_label(label);
 
-    /* Add Y axis label */
-    label = g_object_new(GOG_TYPE_LABEL, "allow-markup", TRUE, NULL);
-    data  = go_data_scalar_str_new("<big>Y</big> axis", FALSE);
-    gog_dataset_set_dim(GOG_DATASET(label), 0, data, NULL);
-    /* data is now owned by label */
+    /* Customize Y axis */
     axis = gog_plot_get_axis(plot, GOG_AXIS_Y);
+    gop_customize_axis(axis);
+    label = gop_label_new("<b>Y</b> axis");
     gog_object_add_by_name(GOG_OBJECT(axis), "Label", label);
-    /* label is now owned by axis */
+    gop_customize_axis_label(label);
 }
 
 static void
@@ -91,9 +98,11 @@ static GtkWidget *
 gop_graph_widget_new(void)
 {
     GtkWidget *widget;
+    GogObject *label;
 
     widget = go_graph_widget_new(NULL);
-    gop_add_title(widget);
+    label  = gop_label_new("Testing libgoffice viability...");
+    gog_object_add_by_name(GOG_OBJECT(GRAPH(widget)), "Title", label);
 
     return widget;
 }
