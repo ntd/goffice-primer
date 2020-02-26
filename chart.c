@@ -18,9 +18,6 @@
 #include <goffice/goffice.h>
 #include <string.h>
 
-#define CHART(w)    go_graph_widget_get_chart(GO_GRAPH_WIDGET(w))
-#define GRAPH(w)    go_graph_widget_get_graph(GO_GRAPH_WIDGET(w))
-
 
 static gboolean gop_trigger = FALSE;
 
@@ -118,11 +115,12 @@ static GtkWidget *
 gop_graph_widget_new(void)
 {
     GtkWidget *widget;
-    GogObject *label;
+    GogGraph *graph;
 
     widget = go_graph_widget_new(NULL);
-    label  = gop_label_new("Testing libgoffice viability...");
-    gog_object_add_by_name(GOG_OBJECT(GRAPH(widget)), "Title", label);
+    graph = go_graph_widget_get_graph(GO_GRAPH_WIDGET(widget));
+    gog_object_add_by_name(GOG_OBJECT(graph), "Title",
+                           gop_label_new("Testing libgoffice viability..."));
 
     return widget;
 }
